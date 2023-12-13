@@ -45,6 +45,8 @@ trait Recommender {
       useMask: Boolean,
       consumedItems: Set[Int]
   ): Array[(Int, Float)] = {
+    //从第log(candidateNum)层开始，每层选取candidateNum个打分最高的nodes，然后对nodes的children node继续向下检索。
+    //类似hnsw的检索，招找到最后的最相似的候选item。
     val codeNodeMap = tree.codeNodeMap
     // binary tree with 2 child => candidateNum * 2
     val modelInputs = duplicateSequence(sequence, tree, useMask, candidateNum * 2)
@@ -53,7 +55,7 @@ trait Recommender {
     val initCandidates = Vector
       .range(levelStartCode, levelEndCode)
       .filter(codeNodeMap.contains)
-      .map(i => TreeNodePred(i, codeNodeMap(i), 0.0f))
+      .map(i => TreeNodePred(i, codeNodeMap(i), 0.0f)) //起始层的nodes
     val initValue = LevelInfo(initCandidates, Nil)
     val finalLevelInfo = (level to tree.maxLevel).foldLeft(initValue) { (levelInfo, _) =>
       if (levelInfo.candidateNodes.isEmpty) {

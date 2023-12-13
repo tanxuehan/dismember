@@ -31,8 +31,14 @@ object TreeBuilder {
     val maxLevel = log2(treeCodes.max + 1)
     val minLeafCode = math.pow(2, maxLevel).toInt - 1
     val leafCodes = flattenLeaves(treeCodes, minLeafCode)
+
+    // leafCodes
+    // println(leafCodes.mkString(","))
+
     val items = treeIds.lazyZip(leafCodes).map(Item).sortBy(_.code)
 
+    // println(items.mkString(","))
+    
     val pstat = stat match {
       case Some(treeStat) => computeNodeOccurrence(items, treeStat, maxLevel)
       case None => Map.empty[Int, Float]
@@ -129,7 +135,9 @@ object TreeBuilder {
     message.writeTo(writer)
   }
 
-  // make all leaf nodes at same level
+  // make all leaf nodes at same level: 
+  // 以最大的分配code为level，并确保所有item都在同一level,
+  // 此时他们的^2次数相同，所以按照genCode中的逻辑，会根据index位置来加不同数量的1和2，越前面的index加的数量越多，所以最后得到的array是降序的leaf index。
   def flattenLeaves(codes: Array[Int], minCode: Int): Array[Int] = {
     @tailrec
     def sink(code: Int): Int = {

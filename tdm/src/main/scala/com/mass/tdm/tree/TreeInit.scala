@@ -199,9 +199,10 @@ class TreeInit(seqLen: Int, minSeqLen: Int, splitForEval: Boolean, splitRatio: D
 
     val items = uniqueItems.sortWith { (a, b) =>
       a.catId < b.catId || (a.catId == b.catId && a.itemId < b.itemId)
-    }
+    } //按照cat id对item排序
 
     def genCode(start: Int, end: Int, code: Int): Unit = {
+      // 计算
       if (end <= start) return
       if (end == start + 1) {
         items(start).code = code
@@ -216,6 +217,14 @@ class TreeInit(seqLen: Int, minSeqLen: Int, splitForEval: Boolean, splitRatio: D
     val ids = items.map(_.itemId)
     val codes = items.map(_.code)
 
+
+
+    // println(ids.mkString(","))
+    // println("\n\n\n\n\n")
+    // println(codes.mkString(","))
+    // println(codes.reduceLeft(_ min _))
+    // println(codes.reduceLeft(_ max _))
+    
     TreeBuilder.build(
       outputTreePath = treePbFile,
       treeIds = ids,

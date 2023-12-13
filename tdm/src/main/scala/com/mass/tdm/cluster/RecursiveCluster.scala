@@ -48,6 +48,7 @@ class RecursiveCluster(
     (ids, codes)
   }
 
+// 不懂：在数量大的时候，recursive的向下聚类； 在数量小的时候，用loop的方式向下聚类。差别在哪里？
   def train(pcode: Int, index: Array[Int], codes: Array[Int], threshold: Int): Unit = {
     if (index.length <= threshold) {
       miniBatch(pcode, index, codes, embeddings, clusterIterNum, clusterType)
@@ -140,8 +141,8 @@ object RecursiveCluster {
 
   def miniBatch(
       pcode: Int,
-      index: Array[Int],
-      codes: Array[Int],
+      index: Array[Int], // [0,1,2,3,4,...]
+      codes: Array[Int], // [0,0,0,0,0,...] 随便占位用
       embeddings: Array[Array[Double]],
       clusterIterNum: Int,
       clusterType: String
@@ -156,7 +157,7 @@ object RecursiveCluster {
       } else {
         val (leftIndex, rightIndex) = cluster(idx, embeddings, clusterIterNum, clusterType)
         if (leftIndex.length == 1) {
-          codes(leftIndex.head) = leftCode
+          codes(leftIndex.head) = leftCode // 第leftIndex的emb对应tree上的leftCode的位置
         } else {
           queue += Tuple2(leftCode, leftIndex)
         }
@@ -177,21 +178,35 @@ object RecursiveCluster {
       clusterIterNum: Int,
       clusterType: String
   ): (Array[Int], Array[Int]) = {
-    val embedPartial = index.map(embeddings(_))
-    val (centroid, matrix) = clusterType match {
+    val embedPartial = index.map(embeddings(_)) // [node_num, 16]
+    println(embedPartial.length)
+    println(embedPartial(0).length)
+    val (centroid, matrix) = clusterType match { //返回其中一个centor和所有node的emb
       case "kmeans" =>
         val kmeansModel: KMeans =
           PartitionClustering.run(clusterIterNum, () => KMeans.fit(embedPartial, 2))
+        println(s"centroids: ${kmeansModel.centroids}\n")
         (kmeansModel.centroids.head, embedPartial)
+        
       case "spectral" =>
-        val clusterResult = SpectralClustering.fit(embedPartial, 2, 1.0, clusterIterNum)
+        val clusterResult = SpectralClustering.fit(embedPartial, 2, 1.0, clusterIterNum) //谱聚类：把emb做了降维后再聚类，得到的是2维的emb
         (clusterResult.getLeft, clusterResult.getRight)
     }
+
+    // println(s"clusterResult left: ${clusterResult.getLeft.length}, right: ${clusterResult.getRight.length}, ${(clusterResult.getRight)(0)}\n")
+    
+    println(s"centroid: ${centroid.mkString(",")}, length: ${centroid.length}\n")
+    println(s"matrix: ${matrix.length}, ${matrix(0).length}\n")
+    // println(s"emb: ${matrix.getClass}\n")
+    // println(s"embeddings: ${embeddings.mkString("Array(", ", ", ")")}\n")
+    // println(s"Recommendation result: ${rec.mkString("Array(", ", ", ")")}")
     val distance = matrix.map(emb => squaredDistance(emb, centroid))
+    System.exit(0)
     balanceTree(distance, index)
+    
   }
 
-  def balanceTree(distance: Array[Double], index: Array[Int]): (Array[Int], Array[Int]) = {
+  def balanceTree(distance: Array[Double], index: Array[Int]): (Array[Int], Array[Int]) = { //以一个centor为锚点，计算距离，均衡左右数量
     val mid = distance.length / 2
     val (leftPart, rightPart) = distance.argPartition(mid, inplace = true).splitAt(mid)
     (leftPart.map(index(_)), rightPart.map(index(_)))

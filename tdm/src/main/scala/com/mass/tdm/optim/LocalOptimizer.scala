@@ -18,7 +18,7 @@ class LocalOptimizer(
     criterion: Criterion[Float],
     optimMethod: OptimMethod[Float],
     numIteration: Int,
-    progressInterval: Int,
+    progressInterval: Int, // print log 的 freq
     topk: Int,
     candidateNum: Int,
     useMask: Boolean
@@ -67,8 +67,8 @@ class LocalOptimizer(
     while (!endWhen(state)) {
       val start = System.nanoTime()
       val batch: MiniBatch = miniBatchIter.next()
-      val miniBatchBuffer = convertBatch(batch)
-      val loss = trainBatch(miniBatchBuffer)
+      val miniBatchBuffer = convertBatch(batch) //按照core数量把batch再做细分
+      val loss = trainBatch(miniBatchBuffer) //BCE loss
 
       syncGradients()
       optimMethod.optimize(_ => (loss.toFloat, totalGradients), totalWeights)

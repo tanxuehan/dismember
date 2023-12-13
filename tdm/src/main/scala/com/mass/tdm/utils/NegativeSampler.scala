@@ -35,7 +35,7 @@ class NegativeSampler(
         level <- 0 until totalLevel
         generator = new MersenneTwister(System.nanoTime())
         (codes, probs) = levelProbs(level)
-      } yield new EnumeratedIntegerDistribution(generator, codes, probs)
+      } yield new EnumeratedIntegerDistribution(generator, codes, probs) //按照prob返回一个code的迭代器
     }
     computeSampleUnit()
     initialized = true
@@ -74,6 +74,8 @@ class NegativeSampler(
     *   Tuple2(sampled ids, sampled labels)
     */
   def sample(itemIds: Seq[Int], threadId: Int): (Seq[Int], Seq[Float]) = {
+    // 返回[pos_itemid, neg_itemid1, neg_itemid2, neg_itemid3, neg_itemid4 ] [1.0, 0.0, 0.0, 0.0, 0.0]
+    // 自顶向下按照当前层的prob分布做负采样，除了head节点
     val (itemCodes, _) = tree.idToCode(itemIds.toArray)
     val allPathNodes: Seq[List[TreeNode]] = tree.pathNodes(itemCodes)
     if (withProb) {
